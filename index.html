@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <title>food-map</title>
+    <meta charset="utf-8" />
+  </head>
+
+  <body>
+    <div id="kakao-map" style="width: 100vw; height: 100vh"></div>
+
+    <script
+      type="text/javascript"
+      src="https://dapi.kakao.com/v2/maps/sdk.js?libraries=services&appkey=547670c24b8ed081cfba83c2381e487c"
+    ></script>
+
+    <script>
+      var mapContainer = document.getElementById("kakao-map");
+      var geocoder = new kakao.maps.services.Geocoder();
+      let bounds = new kakao.maps.LatLngBounds();
+
+      var map = new kakao.maps.Map(mapContainer, {
+        center: new kakao.maps.LatLng(37.5464470122715, 126.981552244865),
+        level: 3,
+      });
+    </script>
+
+    <script async>
+      let logs = [];
+
+      fetch("logs.csv")
+        .then((response) => response.text())
+        .then((data) => {
+          let rows = data.split(/\r?\n|\r/).slice(1);
+          logs = rows.map((row, index) => {
+            let [address, name, review, category] = row.split(",");
+            if (!address) return;
+
+            // show marker
+            geocoder.addressSearch(address, (result, status) => {
+              if (status === kakao.maps.services.Status.OK) {
+                var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+                var marker = new kakao.maps.Marker({
+                  map: map,
+                  position: coords,
+                });
+                var infoWindow = new kakao.maps.InfoWindow({
+                  content: `<div style="width:150px;text-align:center;padding:6px 0;">${name}</div>`,
+                });
+
+                ((marker, infoWindow) => {
+                  kakao.maps.event.addListener(
+                    marker,
+                    "mouseover",
+                    function () {
+                      infoWindow.open(map, marker);
+                    }
+                  );
+
+                  kakao.maps.event.addListener(marker, "mouseout", function () {
+                    infoWindow.close();
+                  });
+                })(marker, infoWindow);
+
+                // update bounds
+                bounds.extend(coords);
+                map.setBounds(bounds);
+              }
+            });
+
+            return row.split(",");
+          });
+        });
+    </script>
+
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </body>
+</html>
